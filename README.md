@@ -8,8 +8,8 @@ This repository is a fork of [Niek/php7](https://github.com/Niek/php7), whose Gi
 
 ## Build status and scope
 
-- PHP: **8.3.36**, packaged as `.deb` files for **Ubuntu 20.04 amd64**.
-- PECL extensions: APCu **5.1.28**, igbinary **3.2.16**, msgpack **3.0.0**, Redis **6.3.0**, Imagick **3.8.1**, memcached **3.4.0**.
+- PHP: **8.3.37**, packaged as `.deb` files for **Ubuntu 20.04 amd64**.
+- PECL extensions: APCu **5.1.28**, igbinary **3.2.16**, msgpack **3.0.0**, Redis **6.3.0**, Imagick **3.8.1**, memcached **3.4.0**, MongoDB **2.5.5**.
 - The normal Debian/Sury package names and layouts are preserved where possible: `php8.3-cli`, `php8.3-fpm`, `php8.3-common`, `php8.3-mysql`, etc.
 - Paths include `/usr/bin/php8.3`, `/usr/sbin/php-fpm8.3`, `/etc/php/8.3/`, and `/usr/lib/php/20230831/`.
 - PHP-FPM and PECL packages were installed and exercised on two existing Ubuntu 20.04 servers: one running Nextcloud, the other Moodle 5. These are **limited real-world checks**, not an automated test suite or a guarantee for other deployments.
@@ -21,8 +21,8 @@ This repository is a fork of [Niek/php7](https://github.com/Niek/php7), whose Gi
 | --- | --- |
 | `.github/workflows/build.yml` | Manually build PHP Debian packages inside an Ubuntu 20.04 container. |
 | `build.sh` | PHP source extraction, Debian packaging and package build. |
-| `sources.sha256` | Pinned source archive names and SHA-256 checksums for PHP. |
-| `.github/workflows/build-pecl.yml` | Manually build the six PECL extensions using packages from a previous PHP workflow run. |
+| `sources.sha256` | Explains the generated source manifest; the exact `.dsc` is selected in `build.yml`. |
+| `.github/workflows/build-pecl.yml` | Manually build the seven PECL extensions using packages from a previous PHP workflow run. |
 | `build-pecl.sh` | Fetch and adapt PECL Debian packaging and compile extension packages. |
 
 ## Build PHP packages
@@ -31,7 +31,7 @@ This repository is a fork of [Niek/php7](https://github.com/Niek/php7), whose Gi
 2. Download the `php8.3-ubuntu20.04-amd64` artifact after the build finishes.
 3. Save the resulting `.deb` files and `SHA256SUMS` in durable storage: GitHub Actions artifacts expire. Check the retention period in the workflow.
 
-The build uses the Sury PHP 8.3 upstream source and Debian packaging selected in `sources.sha256`, building against Ubuntu 20.04 system libraries. A local `+legacy…ubuntu20.04` suffix distinguishes these packages from upstream distribution packages.
+The build uses the Sury PHP 8.3 upstream source and Debian packaging selected by `SOURCE_DSC` in `.github/workflows/build.yml`, building against Ubuntu 20.04 system libraries. A local `+legacy…ubuntu20.04` suffix distinguishes these packages from upstream distribution packages.
 
 ## Build PECL packages
 
@@ -42,7 +42,32 @@ The build uses the Sury PHP 8.3 upstream source and Debian packaging selected in
 
 The PECL build uses the newly built `php8.3-dev` package, targets PHP 8.3 only, and builds igbinary/msgpack before Redis and memcached. Redis is configured with both igbinary and msgpack serializer support. These extensions are packaged as Debian `.deb` files, not copied manually into the PHP extension directory.
 
-**Reproducibility note:** the PHP source archives are pinned by `sources.sha256`; PECL source selection currently depends on the script's source discovery. Pinning PECL source versions and checksums is recommended before relying on repeated builds over time.
+**PECL compatibility:** the existing [PHP 8.3 PECL release](https://github.com/bilo1967/php83-legacy/releases/tag/v8.3.36-pecl-focal.1) remains usable with PHP 8.3.37. Rebuild only when updating extensions or changing PHP API/ABI or build configuration. PHP 8.3 uses API `20230831`; PHP 8.3 and 8.4 extension binaries are not interchangeable. The PECL workflow accepts patch versions within this series and checks the PHP API before compiling.
+
+**Source integrity:** core builds pin the `.dsc` filename, check source sizes and SHA-256 values from that descriptor, recheck the generated manifest inside Docker, and preserve it as `source-files.sha256`. The `.dsc` hash is recorded at download time; it is not an independently pinned checksum or an explicit trusted-key signature check. PECL source discovery selects the available Sury Ubuntu 22.04 descriptor and checks its listed sizes and hashes, so extension source versions are not yet reproducibly pinned.
+
+## Security update: 8.3.37
+
+PHP 8.3.37 is an upstream security release dated 19 November 2026. These packages rebuild the Sury source package for Focal; the security fixes come from that PHP/Sury source, rather than separately maintained local backports.
+
+References: [PHP release announcement](https://www.php.net/releases/8_3_37.php) and [official changelog](https://www.php.net/ChangeLog-8.php#8.3.37).
+
+| Component | Fixed CVE / upstream advisory |
+| --- | --- |
+| CGI | [CVE-2026-129538](https://github.com/php/php-src/security/advisories/GHSA-5j3f-64r7-f564) |
+| Date | [CVE-2026-129496](https://github.com/php/php-src/security/advisories/GHSA-gr4f-wgx5-jpfv) |
+| FPM | [CVE-2026-129289](https://github.com/php/php-src/security/advisories/GHSA-qc49-hpvq-g2w6) |
+| FPM | [CVE-2026-129292](https://github.com/php/php-src/security/advisories/GHSA-3mg3-cr28-46gc) |
+| FPM | [CVE-2026-129291](https://github.com/php/php-src/security/advisories/GHSA-jm4m-qfqx-967m) |
+| Phar | [CVE-2026-128090](https://github.com/php/php-src/security/advisories/GHSA-68fq-fh7h-f8gr) |
+| Session | [CVE-2026-126714](https://github.com/php/php-src/security/advisories/GHSA-fm2m-fjf5-v3cp) |
+| Session | [CVE-2026-115560](https://github.com/php/php-src/security/advisories/GHSA-658j-r8rw-q6mx) |
+| Session | [CVE-2026-129481](https://github.com/php/php-src/security/advisories/GHSA-g3vh-838c-65v7) |
+| SOAP | [CVE-2026-15353](https://github.com/php/php-src/security/advisories/GHSA-q23r-hr55-xmpg) |
+| SOAP | [CVE-2026-129506](https://github.com/php/php-src/security/advisories/GHSA-4646-p932-gw34) |
+| Standard | [CVE-2026-128064](https://github.com/php/php-src/security/advisories/GHSA-f6gg-rchx-xw8j) |
+| Standard | [CVE-2026-127960](https://github.com/php/php-src/security/advisories/GHSA-mmf9-xm3v-hg2x) |
+
 
 ## Installing packages
 
@@ -89,14 +114,16 @@ When replacing a manually installed PHP-FPM in `/opt`, preserve its configuratio
 
 ## Creating a release
 
-Suggested first tag: **`v8.3.36-focal.1`** (mark as **pre-release** until installation testing is complete).
+Core and PECL have independent releases. A core security update reuses the compatible PECL release; it does not rebuild or republish extensions.
 
-1. Go to **Releases → Draft a new release** and create the tag from the tested commit on `main`.
-2. Attach the final **PHP** and **PECL** Debian packages from the two successful workflow artifacts, plus checksum files. Keep the source ZIPs/logs separate if the upload would become unwieldy.
-3. State the exact target (Ubuntu 20.04, amd64), PHP version, PECL versions, and any known limitations.
-4. Verify all intended files are attached before publishing. A release tag alone does not preserve expiring Actions artifacts.
+1. Select a successful **Build PHP 8.3 Legacy** run on `main`. The current run is [44747690604](https://github.com/bilo1967/php83-legacy/actions/runs/44747690604). Core artifacts expire after seven days.
+2. Ensure `releases/v8.3.37-focal.1.md` contains the intended release notes.
+3. Run **Prepare PHP core draft release** on `main` with that run ID and tag `v8.3.37-focal.1`. It verifies the run, package metadata, exact patch version and original checksums, stages the files, and creates an unpublished draft at the build commit. It also preserves a downloadable artifact containing the release files for 30 days.
+4. Review the draft assets and notes, then publish it. To populate a manually created empty draft, use **Attach PHP core packages to draft release** instead. Uploads never overwrite assets.
 
-For a long-term APT repository, additional repository metadata, package signing and a tested update strategy are needed; a GitHub release containing `.deb` files is **not** itself an APT repository.
+The release files include `.deb` packages, `SHA256SUMS`, `source-files.sha256` and `BUILD-ORIGIN.txt`. GitHub strips `~` from asset filenames, so the workflow normalizes filenames before generating release checksums; package contents are unchanged.
+
+Older core releases may be removed after the replacement assets are verified. Keep the linked PECL release while reusing its packages. GitHub releases are not an APT repository.
 
 ## Acknowledgements and licensing
 

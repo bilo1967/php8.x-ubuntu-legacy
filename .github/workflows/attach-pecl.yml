@@ -60,6 +60,7 @@ jobs:
           mkdir -p artifacts/pecl
           gh run download "$RUN_ID" --repo "$REPO" \
             --name "php${PHP_MINOR}-pecl-ubuntu20.04-amd64" --dir artifacts/pecl
+          (cd artifacts/pecl && sha256sum -c SHA256SUMS)
 
       - name: Validate and stage packages
         shell: bash
@@ -81,6 +82,8 @@ jobs:
           done
           for file in "${packages[@]}"; do
             name="${file##*/}"
+            # Match GitHub asset names before generating release checksums.
+            name="${name//\~/}"
             [[ "$name" == php"${PHP_MINOR}"-* ]] || { echo "Unexpected package: $name"; exit 1; }
             [[ ! -e "release-assets/$name" ]] || { echo "Duplicate: $name"; exit 1; }
             cp -- "$file" "release-assets/$name"

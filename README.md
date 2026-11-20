@@ -118,10 +118,10 @@ Core and PECL have independent releases. A core security update reuses the compa
 
 1. Select a successful **Build PHP 8.3 Legacy** run on `main`. The current run is [44747690604](https://github.com/bilo1967/php83-legacy/actions/runs/44747690604). Core artifacts expire after seven days.
 2. Ensure `releases/v8.3.37-focal.1.md` contains the intended release notes.
-3. Run **Prepare PHP core draft release** on `main` with that run ID and tag `v8.3.37-focal.1`. It verifies the run, package metadata, exact patch version and original checksums, stages the files, and creates an unpublished draft at the build commit. It also preserves a downloadable artifact containing the release files for 30 days.
-4. Review the draft assets and notes, then publish it. To populate a manually created empty draft, use **Attach PHP core packages to draft release** instead. Uploads never overwrite assets.
+3. Run **Prepare PHP core release files** on `main` with that run ID and tag `v8.3.37-focal.1`. It verifies the run, package metadata, exact patch version and original checksums, stages a downloadable artifact containing the release files and `RELEASE-NOTES.md` for 30 days. It does not create or publish a release.
+4. Create an empty draft release in the GitHub UI with the intended tag and target commit; use `RELEASE-NOTES.md` for the description. Run **Attach PHP core packages to draft release** with the original core build run ID to populate it. Review the draft, then publish it. Uploads never overwrite assets. Creating the draft through the UI avoids the Actions token restriction when target workflows differ from the default branch ([GitHub documentation](https://docs.github.com/en/rest/releases/releases#create-a-release)).
 
-The release files include `.deb` packages, `SHA256SUMS`, `source-files.sha256` and `BUILD-ORIGIN.txt`. GitHub strips `~` from asset filenames, so the workflow normalizes filenames before generating release checksums; package contents are unchanged.
+The release files include `.deb` packages, `SHA256SUMS`, `source-files.sha256` `BUILD-ORIGIN.txt` and `RELEASE-NOTES.md`. GitHub strips `~` from asset filenames, so the workflow normalizes filenames before generating release checksums; package contents are unchanged.
 
 Older core releases may be removed after the replacement assets are verified. Keep the linked PECL release while reusing its packages. GitHub releases are not an APT repository.
 

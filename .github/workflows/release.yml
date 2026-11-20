@@ -1,4 +1,4 @@
-name: Prepare PHP core draft release
+name: Prepare PHP core release files
 
 on:
   workflow_dispatch:
@@ -14,7 +14,7 @@ on:
 
 permissions:
   actions: read
-  contents: write
+  contents: read
 
 concurrency:
   group: publish-php-core-focal
@@ -28,14 +28,14 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-      - name: Verify packages and create draft
+      - name: Verify packages and prepare release files
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
           RUN_ID: ${{ inputs.php_run_id }}
           TAG: ${{ inputs.release_tag }}
           BRANCH: ${{ github.ref_name }}
-        run: bash .github/scripts/prepare-core-release.sh create
+        run: bash .github/scripts/prepare-core-release.sh stage
       - name: Preserve staged release files
         uses: actions/upload-artifact@v4
         with:

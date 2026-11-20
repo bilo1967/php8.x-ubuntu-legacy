@@ -3,7 +3,7 @@
 set -Eeuo pipefail
 : "${REPO:?}" "${RUN_ID:?}" "${TAG:?}" "${BRANCH:?}" "${GH_TOKEN:?}"
 mode=${1:-attach}
-[[ "$mode" == attach || "$mode" == create ]] || exit 1
+[[ "$mode" == attach || "$mode" == stage ]] || exit 1
 [[ "$RUN_ID" =~ ^[0-9]+$ ]] || { echo 'Invalid run ID'; exit 1; }
 if [[ "$TAG" =~ ^v(8\.[0-9]+)\.([0-9]+)-focal\.[0-9]+$ ]]; then
   minor=${BASH_REMATCH[1]}
@@ -25,13 +25,7 @@ notes="releases/$TAG.md"
 test -s "$notes"
 if [[ "$mode" == attach ]]; then
   [[ $(gh release view "$TAG" --repo "$REPO" --json isDraft --jq .isDraft) == true ]]
-else
-  # Fail before creating anything if the release/tag already exists.
-  if gh release view "$TAG" --repo "$REPO" > /dev/null 2>&1; then
-    echo "Release $TAG already exists; use attach-core for an empty draft"; exit 1
-  fi
-  tag_ref=$(gh api "repos/$REPO/git/matching-refs/tags/$TAG")
-  jq -e --arg ref "refs/tags/$TAG" 'all(.[]; .ref != $ref)' <<< "$tag_ref" > /dev/null
+
 fi
 mkdir -p artifacts/core release-assets
 [[ -z $(find release-assets -mindepth 1 -print -quit) ]] || { echo 'Staging directory must be empty'; exit 1; }
@@ -85,9 +79,10 @@ printf 'Build run: https://github.com/%s/actions/runs/%s\nSource commit: %s\n' "
 (cd release-assets && sha256sum ./*.deb > SHA256SUMS && sha256sum -c SHA256SUMS)
 cp "$notes" artifacts/release-notes.md
 printf '\n## Build provenance\n\nPackages: https://github.com/%s/actions/runs/%s (commit `%s`).\n' "$REPO" "$RUN_ID" "$source_sha" >> artifacts/release-notes.md
-if [[ "$mode" == create ]]; then
-  gh release create "$TAG" --repo "$REPO" --target "$source_sha" --draft --prerelease \
-    --title "PHP $version for Ubuntu 20.04 (Focal)" --notes-file artifacts/release-notes.md
+cp artifacts/release-notes.md release-assets/RELEASE-NOTES.md
+if [[ "$mode" == attach ]]; then
+  gh release upload "$TAG" release-assets/* --repo "$REPO"
+  echo "Attached ${#packages[@]} Debian packages to draft $TAG; draft remains unpublished."
+else
+  echo "Prepared $TAG with ${#packages[@]} Debian packages for download; no release was created."
 fi
-gh release upload "$TAG" release-assets/* --repo "$REPO"
-echo "Prepared $TAG with ${#packages[@]} Debian packages; draft remains unpublished."

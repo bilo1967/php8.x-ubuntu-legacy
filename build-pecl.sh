@@ -36,14 +36,9 @@ apt-get install -y --no-install-recommends "/tmp/${DH_PHP_DEB}"
 dpkg-query -W -f='${Version}\n' dh-php
 dpkg --compare-versions "$(dpkg-query -W -f='${Version}' dh-php)" ge '5.5~'
 
-echo ">>> Installing Sury php-common"
-
-curl -fsSL \
-  "https://packages.sury.org/php/pool/main/p/php-defaults/php-common_101+0~20261021.78+ubuntu22.04~1.gbp53f25f_all.deb" \
-  -o /tmp/php-common.deb
-
-apt-get install -y /tmp/php-common.deb
-
+# Use the same checksum-pinned shared dependency as the core build.
+bash /repo/.github/scripts/copy-php-common.sh /tmp
+apt-get install -y --no-install-recommends /tmp/php-common_*.deb
 dpkg-query -W php-common
 
 # Use only the PHP packages from the selected, checksum-verified artifact.

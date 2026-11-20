@@ -1,19 +1,14 @@
-
-name: Attach PHP packages to draft release
+name: Prepare PHP core draft release
 
 on:
   workflow_dispatch:
     inputs:
       php_run_id:
-        description: 'Successful PHP build run ID'
-        required: true
-        type: string
-      pecl_run_id:
-        description: 'Successful PECL build run ID'
+        description: 'Successful core build run ID; PHP and PECL are not rebuilt'
         required: true
         type: string
       release_tag:
-        description: 'Existing draft release tag (e.g. v8.4.27-focal.1)'
+        description: 'New core release tag (v8.x.xx-focal.y)'
         required: true
         type: string
 
@@ -22,133 +17,28 @@ permissions:
   contents: write
 
 concurrency:
-  group: publish-php-focal
+  group: publish-php-core-focal
   cancel-in-progress: false
 
 jobs:
-  attach:
+  prepare:
     runs-on: ubuntu-latest
     timeout-minutes: 30
-
     steps:
-      - name: Determine PHP version from release tag
-        env:
-          TAG: ${{ inputs.release_tag }}
-        shell: bash
-        run: |
-          set -Eeuo pipefail
-
-          if [[ "$TAG" =~ ^v(8\.[0-9]+)\.[0-9]+-focal\.[0-9]+$ ]]; then
-            PHP_MINOR="${BASH_REMATCH[1]}"
-          else
-            echo "Invalid release tag: $TAG"
-            exit 1
-          fi
-
-          echo "PHP_MINOR=$PHP_MINOR" >> "$GITHUB_ENV"
-          echo "Publishing PHP $PHP_MINOR to $TAG"
-
-      - name: Download selected build artifacts
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Verify packages and create draft
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
-          PHP_RUN: ${{ inputs.php_run_id }}
-          PECL_RUN: ${{ inputs.pecl_run_id }}
-        shell: bash
-        run: |
-          set -Eeuo pipefail
-
-          mkdir -p artifacts/php artifacts/pecl
-
-          gh run download "$PHP_RUN" --repo "$REPO" \
-            --name "php${PHP_MINOR}-ubuntu20.04-amd64" \
-            --dir artifacts/php
-
-          gh run download "$PECL_RUN" --repo "$REPO" \
-            --name "php${PHP_MINOR}-pecl-ubuntu20.04-amd64" \
-            --dir artifacts/pecl
-
-      - name: Validate and stage Debian packages
-        shell: bash
-        run: |
-          set -Eeuo pipefail
-
-          mkdir -p release-assets
-          shopt -s nullglob globstar
-
-          php_debs=(artifacts/php/**/*.deb)
-          pecl_debs=(artifacts/pecl/**/*.deb)
-
-          echo "PHP packages: ${#php_debs[@]}"
-          echo "PECL packages: ${#pecl_debs[@]}"
-
-          (( ${#php_debs[@]} >= 30 )) || {
-            echo 'Missing PHP packages'
-            exit 1
-          }
-
-          (( ${#pecl_debs[@]} == 6 )) || {
-            echo 'Expected exactly six PECL packages'
-            exit 1
-          }
-
-          for package in cli fpm common ldap; do
-            matches=(artifacts/php/**/php"${PHP_MINOR}"-"${package}"_*.deb)
-            (( ${#matches[@]} == 1 )) || {
-              echo "Missing/duplicate PHP package: $package"
-              exit 1
-            }
-          done
-
-          for extension in apcu igbinary msgpack redis imagick memcached; do
-            matches=(artifacts/pecl/**/php"${PHP_MINOR}"-"${extension}"_*.deb)
-            (( ${#matches[@]} == 1 )) || {
-              echo "Missing/duplicate PECL package: $extension"
-              exit 1
-            }
-          done
-
-          for file in "${php_debs[@]}" "${pecl_debs[@]}"; do
-            name="${file##*/}"
-
-            [[ ! -e "release-assets/$name" ]] || {
-              echo "Duplicate package: $name"
-              exit 1
-            }
-
-            cp -- "$file" "release-assets/$name"
-          done
-
-          (
-            cd release-assets
-            sha256sum ./*.deb > SHA256SUMS
-          )
-
-          echo "Staged $(find release-assets -maxdepth 1 -name '*.deb' | wc -l) packages"
-
-      - name: Upload assets to existing draft
-        env:
-          GH_TOKEN: ${{ github.token }}
-          REPO: ${{ github.repository }}
+          RUN_ID: ${{ inputs.php_run_id }}
           TAG: ${{ inputs.release_tag }}
-        shell: bash
-        run: |
-          set -Eeuo pipefail
-
-          draft="$(gh release view "$TAG" \
-            --repo "$REPO" \
-            --json isDraft \
-            --jq '.isDraft')"
-
-          [[ "$draft" == 'true' ]] || {
-            echo "Release $TAG not found or not a draft"
-            exit 1
-          }
-
-          gh release upload "$TAG" \
-            release-assets/*.deb \
-            release-assets/SHA256SUMS \
-            --repo "$REPO"
-
-          echo "Attached assets to draft release $TAG"
-          echo "Draft remains unpublished."
+          BRANCH: ${{ github.ref_name }}
+        run: bash .github/scripts/prepare-core-release.sh create
+      - name: Preserve staged release files
+        uses: actions/upload-artifact@v4
+        with:
+          name: core-release-${{ inputs.release_tag }}
+          path: release-assets/
+          retention-days: 30

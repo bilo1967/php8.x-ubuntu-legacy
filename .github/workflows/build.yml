@@ -8,6 +8,8 @@ on:
     paths:
       - build.sh
       - .github/workflows/build.yml
+      - .github/scripts/copy-php-common.sh
+      - vendor/php-common/**
 
 permissions:
   contents: read

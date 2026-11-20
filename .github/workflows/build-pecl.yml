@@ -39,8 +39,9 @@ jobs:
           test -n "$(find . -maxdepth 1 -name 'php8.4-cli_*.deb' -print -quit)"
           test -n "$(find . -maxdepth 1 -name 'php8.4-common_*.deb' -print -quit)"
           version=$(dpkg-deb -f php8.4-dev_*.deb Version)
+          # Patch updates reuse the same PHP API; build-pecl.sh checks it with php-config.
           case "$version" in
-            8.4.27*+legacy*ubuntu20.04) echo "Validated PHP: $version" ;;
+            8.4.[0-9]*+legacy*ubuntu20.04) echo "Validated PHP: $version" ;;
             *) echo "Unexpected PHP package version: $version" >&2; exit 1 ;;
           esac
 

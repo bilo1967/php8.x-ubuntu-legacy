@@ -42,7 +42,7 @@ The build uses the Sury PHP 8.3 upstream source and Debian packaging selected by
 
 The PECL build uses the newly built `php8.3-dev` package, targets PHP 8.3 only, and builds igbinary/msgpack before Redis and memcached. Redis is configured with both igbinary and msgpack serializer support. These extensions are packaged as Debian `.deb` files, not copied manually into the PHP extension directory.
 
-**PECL compatibility:** the existing [PHP 8.3 PECL release](https://github.com/bilo1967/php83-legacy/releases/tag/v8.3.36-pecl-focal.1) remains usable with PHP 8.3.37. Rebuild only when updating extensions or changing PHP API/ABI or build configuration. PHP 8.3 uses API `20230831`; PHP 8.3 and 8.4 extension binaries are not interchangeable. The PECL workflow accepts patch versions within this series and checks the PHP API before compiling.
+**PECL compatibility:** the existing [PHP 8.3 PECL release](https://github.com/bilo1967/php8.x-ubuntu-legacy/releases/tag/v8.3.36-pecl-focal.1) remains usable with PHP 8.3.37. Rebuild only when updating extensions or changing PHP API/ABI or build configuration. PHP 8.3 uses API `20230831`; PHP 8.3 and 8.4 extension binaries are not interchangeable. The PECL workflow accepts patch versions within this series and checks the PHP API before compiling.
 
 **Source integrity:** core builds pin the `.dsc` filename, check source sizes and SHA-256 values from that descriptor, recheck the generated manifest inside Docker, and preserve it as `source-files.sha256`. The `.dsc` hash is recorded at download time; it is not an independently pinned checksum or an explicit trusted-key signature check. PECL source discovery selects the available Sury Ubuntu 22.04 descriptor and checks its listed sizes and hashes, so extension source versions are not yet reproducibly pinned.
 
@@ -116,7 +116,7 @@ When replacing a manually installed PHP-FPM in `/opt`, preserve its configuratio
 
 Core and PECL have independent releases. A core security update reuses the compatible PECL release; it does not rebuild or republish extensions.
 
-1. Select a successful **Build PHP 8.3 Legacy** run on `main`. The current run is [44747690604](https://github.com/bilo1967/php83-legacy/actions/runs/44747690604). Core artifacts expire after seven days.
+1. Select a successful **Build PHP 8.3 Legacy** run on `main`. The current run is [44747690604](https://github.com/bilo1967/php8.x-ubuntu-legacy/actions/runs/44747690604). Core artifacts expire after seven days.
 2. Ensure `releases/v8.3.37-focal.1.md` contains the intended release notes.
 3. Run **Prepare PHP core release files** on `main` with that run ID and tag `v8.3.37-focal.1`. It verifies the run, package metadata, exact patch version and original checksums, stages a downloadable artifact containing the release files and `RELEASE-NOTES.md` for 30 days. It does not create or publish a release.
 4. Create an empty draft release in the GitHub UI with the intended tag and target commit; use `RELEASE-NOTES.md` for the description. Run **Attach PHP core packages to draft release** with the original core build run ID to populate it. Review the draft, then publish it. Uploads never overwrite assets. Creating the draft through the UI avoids the Actions token restriction when target workflows differ from the default branch ([GitHub documentation](https://docs.github.com/en/rest/releases/releases#create-a-release)).

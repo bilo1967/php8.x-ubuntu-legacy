@@ -87,7 +87,9 @@ dpkg-query -W -f='${binary:Package}\t${Version}\n' > /out/build-dependencies.txt
 # Bundle it with PHP packages, so deployments are self-contained.
 php_common_version='101+0~20261021.78+ubuntu22.04~1.gbp53f25f'
 php_common_file="php-common_${php_common_version}_all.deb"
-php_common_url="https://packages.sury.org/php/pool/main/p/php-defaults/${php_common_file}"
+# The original Sury binary URL is no longer available. Reuse the
+# previously validated package from the existing PHP 8.4.27 release.
+php_common_url='https://github.com/bilo1967/php83-legacy/releases/download/v8.4.27-focal.1/php-common_101%2B0.20261021.78%2Bubuntu22.04.1.gbp53f25f_all.deb'
 log "Bundling Sury php-common 2:${php_common_version}"
 curl -fsSL --retry 3 --retry-delay 2 "$php_common_url" -o "/out/${php_common_file}"
 [[ "$(dpkg-deb -f "/out/${php_common_file}" Package)" == 'php-common' ]]

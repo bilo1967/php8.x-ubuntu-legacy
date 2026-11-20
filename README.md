@@ -6,6 +6,8 @@ This repository is a fork of [Niek/php7](https://github.com/Niek/php7), whose Gi
 
 > **Unofficial, experimental build.** Not affiliated with or supported by Ondřej Surý, Ubuntu, or PHP. Ubuntu 20.04 is outside standard support. Building a newer PHP does **not** update or secure the underlying operating system or its libraries. Prefer a supported Ubuntu release for production systems.
 
+See also the [main branch](https://github.com/bilo1967/php8.x-ubuntu-legacy/tree/main) for PHP 8.3.x.
+
 ## Build status and scope
 
 - PHP: **8.4.28**, packaged as `.deb` files for **Ubuntu 20.04 amd64**.

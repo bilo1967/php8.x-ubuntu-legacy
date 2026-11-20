@@ -2,6 +2,12 @@ name: Build PHP 8.4 Legacy
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - php84
+    paths:
+      - build.sh
+      - .github/workflows/build.yml
 
 permissions:
   contents: read
@@ -13,6 +19,7 @@ defaults:
 env:
   REVISION: '1'
   SOURCE_URL: https://packages.sury.org/php/pool/main/p/php8.4
+  SOURCE_DSC: 'php8.4_8.4.28-2+debsuryorg22.04.1+php+1.dsc'
 
 jobs:
   build:
@@ -31,13 +38,37 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Download pinned source
+      - name: Download and verify exact Sury source
         run: |
+          set -Eeuo pipefail
           mkdir sources out
-          while read -r _ file; do
-            curl -fsSL --retry 3 "$SOURCE_URL/$file" -o "sources/$file"
-          done < sources.sha256
-          (cd sources && sha256sum -c ../sources.sha256)
+          python3 - <<'PY'
+          import hashlib, os, pathlib, re, urllib.request
+          base = os.environ["SOURCE_URL"].rstrip("/")
+          dsc_name = os.environ["SOURCE_DSC"]
+          out = pathlib.Path("sources")
+          dsc_data = urllib.request.urlopen(base + "/" + dsc_name, timeout=120).read()
+          (out / dsc_name).write_bytes(dsc_data)
+          contents = dsc_data.decode("utf-8")
+          match = re.search(r"^Checksums-Sha256:\s*\n((?: [^\n]+\n)+)", contents, re.M)
+          if not match:
+              raise SystemExit("Missing Checksums-Sha256 in " + dsc_name)
+          entries = [(hashlib.sha256(dsc_data).hexdigest(), len(dsc_data), dsc_name)]
+          for line in match.group(1).splitlines():
+              sha, length, filename = line.split()
+              if not re.fullmatch(r"[A-Za-z0-9_.+~-]+", filename):
+                  raise SystemExit("Unsafe source filename: " + filename)
+              data = urllib.request.urlopen(base + "/" + filename, timeout=300).read()
+              if len(data) != int(length) or hashlib.sha256(data).hexdigest() != sha:
+                  raise SystemExit("Source integrity mismatch: " + filename)
+              (out / filename).write_bytes(data)
+              entries.append((sha, int(length), filename))
+          (out / "sources.sha256").write_text("".join(f"{sha}  {filename}\n" for sha, _, filename in entries))
+          print("Verified source files:")
+          print((out / "sources.sha256").read_text())
+          PY
+          (cd sources && sha256sum -c sources.sha256)
+          cp sources/sources.sha256 out/source-files.sha256
 
       - name: Build native amd64 packages in Docker
         env:

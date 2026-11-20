@@ -35,7 +35,7 @@ apt-get install -y --no-install-recommends \
 mkdir -p /build /out
 cd /sources
 log 'Verifying pinned upstream sources'
-sha256sum -c /repo/sources.sha256
+sha256sum -c /sources/sources.sha256
 
 # Select the one pinned .dsc, without guessing package file names.
 shopt -s nullglob
@@ -53,7 +53,7 @@ cd /build/php
 # is observed. In particular, do not reuse PHP 7.4 sed patches blindly.
 upstream_version=$(dpkg-parsechangelog -S Version)
 case "$upstream_version" in
-  *8.3.36*) ;;
+  *8.3.37*) ;;
   *) echo "Unexpected PHP source version: $upstream_version" >&2; exit 1 ;;
 esac
 # Append the legacy revision after the complete Sury Debian version.

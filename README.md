@@ -1,4 +1,4 @@
-# PHP 8.4 packages for Ubuntu 20.04 (Focal)
+# PHP 8.4 security fixed packages for Ubuntu 20.04 (Focal)
 
 Unofficial PHP 8.4 Debian packages for **Ubuntu 20.04 LTS (Focal), amd64**, built using the PHP packaging published by [Ondřej Surý](https://packages.sury.org/php/) and adapted to run on Focal.
 
